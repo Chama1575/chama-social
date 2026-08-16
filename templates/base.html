@@ -1,29 +1,43 @@
-
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Chama Social{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Chama Social{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
+
 <header>
-  <div>
-    <h1>Instituto Chama Social</h1>
-    <p>Cadastro de inscritos</p>
-  </div>
-  <a class="btn" href="{{ url_for('index') }}">Início</a>
-</header>
-<main>
-  {% with messages = get_flashed_messages() %}
-    {% if messages %}
-      {% for message in messages %}
-        <div class="alerta">{{ message }}</div>
-      {% endfor %}
+    <div>
+        <h1>Instituto Chama Social</h1>
+        <p>Cadastro de inscritos</p>
+    </div>
+
+    {% if request.endpoint not in [
+        'cadastro_publico',
+        'cadastro_voluntario_publico',
+        'sucesso',
+        'sucesso_voluntario'
+    ] %}
+        <a class="btn" href="{{ url_for('index') }}">Início</a>
     {% endif %}
-  {% endwith %}
-  {% block content %}{% endblock %}
+</header>
+
+<main>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alerta">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+
 </main>
+
 </body>
 </html>
