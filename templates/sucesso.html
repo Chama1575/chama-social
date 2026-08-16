@@ -1,10 +1,1 @@
-
-{% extends "base.html" %}
-{% block title %}Inscrição enviada{% endblock %}
-{% block content %}
-<div class="sucesso">
-  <h2>Inscrição realizada com sucesso!</h2>
-  <p>Seu cadastro foi registrado para <strong>{{ evento['nome'] }}</strong>.</p>
-  <p>Atendimento escolhido: <strong>{{ atendimento['nome'] }}</strong>.</p>
-</div>
-{% endblock %}
+{% extends 'public_base.html' %}{% block content %}<div class="card center"><div class="logo">✅</div><h1>{{titulo}}</h1><p>{{texto}}</p></div>{% endblock %}
