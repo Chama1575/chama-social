@@ -1,120 +1,94 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file, session, abort
-import sqlite3, io, xlsxwriter
-from pathlib import Path
+import os, io, xlsxwriter
+import psycopg2
+from psycopg2.extras import DictCursor
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = 'chama-social-teste-login-v2'
-DB_PATH = Path(__file__).parent / 'chama_social.db'
+app.secret_key = os.environ.get("SECRET_KEY", "chama-social-v3")
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
+class CursorWrapper:
+    def __init__(self, cursor, lastrowid=None):
+        self.cursor = cursor
+        self.lastrowid = lastrowid
+    def fetchone(self):
+        return self.cursor.fetchone()
+    def fetchall(self):
+        return self.cursor.fetchall()
+
+class ConnectionWrapper:
+    def __init__(self):
+        if not DATABASE_URL:
+            raise RuntimeError("DATABASE_URL não configurada no ambiente.")
+        self.conn = psycopg2.connect(DATABASE_URL, sslmode="require", cursor_factory=DictCursor)
+    def execute(self, sql, params=()):
+        sql = sql.replace("?", "%s")
+        cur = self.conn.cursor()
+        lastrowid = None
+        if sql.lstrip().upper().startswith("INSERT INTO"):
+            sql_exec = sql.rstrip().rstrip(";")
+            if " RETURNING " not in sql_exec.upper():
+                sql_exec += " RETURNING id"
+            cur.execute(sql_exec, params)
+            row = cur.fetchone()
+            if row is not None:
+                lastrowid = row["id"]
+        else:
+            cur.execute(sql, params)
+        return CursorWrapper(cur, lastrowid)
+    def commit(self):
+        self.conn.commit()
+    def rollback(self):
+        self.conn.rollback()
+    def close(self):
+        self.conn.close()
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
+    return ConnectionWrapper()
 
 def init_db():
     conn = get_db()
-    conn.executescript('''
-    CREATE TABLE IF NOT EXISTS usuarios (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nome TEXT NOT NULL,
-        login TEXT NOT NULL UNIQUE,
-        senha_hash TEXT NOT NULL,
-        perfil TEXT NOT NULL CHECK(perfil IN ('admin','operador','visualizador')),
-        ativo INTEGER NOT NULL DEFAULT 1,
-        trocar_senha INTEGER NOT NULL DEFAULT 1,
-        criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE TABLE IF NOT EXISTS eventos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nome TEXT NOT NULL,
-        data TEXT,
-        local TEXT,
-        permitir_cpf_repetido INTEGER NOT NULL DEFAULT 0,
-        ativo INTEGER NOT NULL DEFAULT 1,
-        criado_por INTEGER,
-        FOREIGN KEY(criado_por) REFERENCES usuarios(id)
-    );
-    CREATE TABLE IF NOT EXISTS campos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        evento_id INTEGER NOT NULL,
-        titulo TEXT NOT NULL,
-        tipo TEXT NOT NULL,
-        obrigatorio INTEGER NOT NULL DEFAULT 0,
-        opcoes TEXT,
-        ordem INTEGER NOT NULL DEFAULT 0,
-        marcador_cpf INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY(evento_id) REFERENCES eventos(id)
-    );
-    CREATE TABLE IF NOT EXISTS atendimentos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        evento_id INTEGER NOT NULL,
-        nome TEXT NOT NULL,
-        vagas INTEGER NOT NULL DEFAULT 0,
-        ativo INTEGER NOT NULL DEFAULT 1,
-        FOREIGN KEY(evento_id) REFERENCES eventos(id)
-    );
-    CREATE TABLE IF NOT EXISTS inscricoes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        evento_id INTEGER NOT NULL,
-        atendimento_id INTEGER,
-        criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(evento_id) REFERENCES eventos(id),
-        FOREIGN KEY(atendimento_id) REFERENCES atendimentos(id)
-    );
-    CREATE TABLE IF NOT EXISTS respostas (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        inscricao_id INTEGER NOT NULL,
-        campo_id INTEGER NOT NULL,
-        valor TEXT,
-        FOREIGN KEY(inscricao_id) REFERENCES inscricoes(id),
-        FOREIGN KEY(campo_id) REFERENCES campos(id)
-    );
-    CREATE TABLE IF NOT EXISTS campos_voluntarios (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        evento_id INTEGER NOT NULL,
-        titulo TEXT NOT NULL,
-        tipo TEXT NOT NULL,
-        obrigatorio INTEGER NOT NULL DEFAULT 0,
-        opcoes TEXT,
-        ordem INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY(evento_id) REFERENCES eventos(id)
-    );
-    CREATE TABLE IF NOT EXISTS voluntarios (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        evento_id INTEGER NOT NULL,
-        criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(evento_id) REFERENCES eventos(id)
-    );
-    CREATE TABLE IF NOT EXISTS respostas_voluntarios (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        voluntario_id INTEGER NOT NULL,
-        campo_id INTEGER NOT NULL,
-        valor TEXT,
-        FOREIGN KEY(voluntario_id) REFERENCES voluntarios(id),
-        FOREIGN KEY(campo_id) REFERENCES campos_voluntarios(id)
-    );
-    CREATE TABLE IF NOT EXISTS solicitacoes_exclusao (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        usuario_id INTEGER NOT NULL,
-        tipo TEXT NOT NULL,
-        alvo_id INTEGER NOT NULL,
-        descricao TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'pendente',
-        criado_em DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-    ''')
-    # Cria o administrador principal somente quando ainda não existe nenhum usuário.
-    # A senha inicial não é exibida na interface nem armazenada em texto puro.
-    existe = conn.execute("SELECT id FROM usuarios LIMIT 1").fetchone()
-    if not existe:
-        conn.execute('INSERT INTO usuarios (nome, login, senha_hash, perfil, trocar_senha) VALUES (?,?,?,?,0)',
-                     ('Administrador', 'Amorim', 'pbkdf2:sha256:600000$chamasocial-amorim-2026$e401e9cd651ae801f5b7d946e98d99e5790c49142c5675ef877de1ffbd32bcf4', 'admin'))
-    conn.commit(); conn.close()
+    try:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id SERIAL PRIMARY KEY,
+                nome TEXT NOT NULL,
+                login TEXT NOT NULL UNIQUE,
+                senha_hash TEXT NOT NULL,
+                perfil TEXT NOT NULL CHECK (perfil IN ('admin','operador','visualizador')),
+                ativo INTEGER NOT NULL DEFAULT 1,
+                trocar_senha INTEGER NOT NULL DEFAULT 1,
+                criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.execute("ALTER TABLE eventos ADD COLUMN IF NOT EXISTS criado_por INTEGER")
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS solicitacoes_exclusao (
+                id SERIAL PRIMARY KEY,
+                usuario_id INTEGER NOT NULL,
+                tipo TEXT NOT NULL,
+                alvo_id INTEGER NOT NULL,
+                descricao TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pendente',
+                criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        existe = conn.execute("SELECT id FROM usuarios LIMIT 1").fetchone()
+        if not existe:
+            conn.execute(
+                "INSERT INTO usuarios (nome, login, senha_hash, perfil, trocar_senha) VALUES (?,?,?,?,0)",
+                ('Administrador', 'Amorim', 'pbkdf2:sha256:600000$chamasocial-amorim-2026$e401e9cd651ae801f5b7d946e98d99e5790c49142c5675ef877de1ffbd32bcf4', 'admin')
+            )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
+init_db()
 
 def usuario_atual():
     uid = session.get('usuario_id')
@@ -206,10 +180,13 @@ def novo_usuario():
         if not senha:
             flash('Defina uma senha para o novo usuário.','erro')
             return render_template('novo_usuario.html')
+        conn=None
         try:
-            conn=get_db(); conn.execute('INSERT INTO usuarios (nome,login,senha_hash,perfil,trocar_senha) VALUES (?,?,?,?,1)',(nome,login_nome,generate_password_hash(senha),perfil)); conn.commit(); conn.close()
+            conn=get_db(); conn.execute('INSERT INTO usuarios (nome,login,senha_hash,perfil,trocar_senha) VALUES (?,?,?,?,1)',(nome,login_nome,generate_password_hash(senha),perfil)); conn.commit(); conn.close(); conn=None
             flash('Usuário criado. No primeiro acesso ele deverá criar uma nova senha.','ok'); return redirect(url_for('usuarios'))
-        except sqlite3.IntegrityError:
+        except psycopg2.IntegrityError:
+            if conn:
+                conn.rollback(); conn.close()
             flash('Esse login já existe.','erro')
     return render_template('novo_usuario.html')
 
