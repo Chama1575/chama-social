@@ -1,105 +1,76 @@
-
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file
-import sqlite3
+import os
 import io
 import xlsxwriter
-from pathlib import Path
+import psycopg2
+from psycopg2.extras import DictCursor
 
 app = Flask(__name__)
-app.secret_key = "chama-social-v3"
+app.secret_key = os.environ.get("SECRET_KEY", "chama-social-v3")
 
-DB_PATH = Path(__file__).parent / "chama_social.db"
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+
+class CursorWrapper:
+    def __init__(self, cursor, lastrowid=None):
+        self.cursor = cursor
+        self.lastrowid = lastrowid
+
+    def fetchone(self):
+        return self.cursor.fetchone()
+
+    def fetchall(self):
+        return self.cursor.fetchall()
+
+
+class ConnectionWrapper:
+    def __init__(self):
+        if not DATABASE_URL:
+            raise RuntimeError("DATABASE_URL não configurada no ambiente.")
+        self.conn = psycopg2.connect(
+            DATABASE_URL,
+            sslmode="require",
+            cursor_factory=DictCursor
+        )
+
+    def execute(self, sql, params=()):
+        # Compatibilidade com as consultas originais escritas para SQLite.
+        sql = sql.replace("?", "%s")
+        cur = self.conn.cursor()
+        lastrowid = None
+
+        if sql.lstrip().upper().startswith("INSERT INTO"):
+            sql_exec = sql.rstrip().rstrip(";")
+            if " RETURNING " not in sql_exec.upper():
+                sql_exec += " RETURNING id"
+            cur.execute(sql_exec, params)
+            row = cur.fetchone()
+            if row is not None:
+                lastrowid = row["id"]
+        else:
+            cur.execute(sql, params)
+
+        return CursorWrapper(cur, lastrowid)
+
+    def commit(self):
+        self.conn.commit()
+
+    def rollback(self):
+        self.conn.rollback()
+
+    def close(self):
+        self.conn.close()
+
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    return ConnectionWrapper()
+
 
 def init_db():
+    # As tabelas já foram criadas no Supabase pelo SQL Editor.
+    # Esta função apenas valida a conexão quando executado manualmente.
     conn = get_db()
-    conn.executescript("""
-    CREATE TABLE IF NOT EXISTS eventos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        nome TEXT NOT NULL,
-        data TEXT,
-        local TEXT,
-        permitir_cpf_repetido INTEGER NOT NULL DEFAULT 0,
-        ativo INTEGER NOT NULL DEFAULT 1
-    );
-
-    CREATE TABLE IF NOT EXISTS campos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        evento_id INTEGER NOT NULL,
-        titulo TEXT NOT NULL,
-        tipo TEXT NOT NULL,
-        obrigatorio INTEGER NOT NULL DEFAULT 0,
-        opcoes TEXT,
-        ordem INTEGER NOT NULL DEFAULT 0,
-        marcador_cpf INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY(evento_id) REFERENCES eventos(id)
-    );
-
-    CREATE TABLE IF NOT EXISTS atendimentos (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        evento_id INTEGER NOT NULL,
-        nome TEXT NOT NULL,
-        vagas INTEGER NOT NULL DEFAULT 0,
-        ativo INTEGER NOT NULL DEFAULT 1,
-        FOREIGN KEY(evento_id) REFERENCES eventos(id)
-    );
-
-    CREATE TABLE IF NOT EXISTS inscricoes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        evento_id INTEGER NOT NULL,
-        atendimento_id INTEGER,
-        criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(evento_id) REFERENCES eventos(id),
-        FOREIGN KEY(atendimento_id) REFERENCES atendimentos(id)
-    );
-
-
-    CREATE TABLE IF NOT EXISTS campos_voluntarios (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        evento_id INTEGER NOT NULL,
-        titulo TEXT NOT NULL,
-        tipo TEXT NOT NULL,
-        obrigatorio INTEGER NOT NULL DEFAULT 0,
-        opcoes TEXT,
-        ordem INTEGER NOT NULL DEFAULT 0,
-        marcador_cpf INTEGER NOT NULL DEFAULT 0,
-        FOREIGN KEY(evento_id) REFERENCES eventos(id)
-    );
-
-    CREATE TABLE IF NOT EXISTS voluntarios (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        evento_id INTEGER NOT NULL,
-        criado_em DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(evento_id) REFERENCES eventos(id)
-    );
-
-    CREATE TABLE IF NOT EXISTS respostas_voluntarios (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        voluntario_id INTEGER NOT NULL,
-        campo_id INTEGER NOT NULL,
-        valor TEXT,
-        FOREIGN KEY(voluntario_id) REFERENCES voluntarios(id),
-        FOREIGN KEY(campo_id) REFERENCES campos_voluntarios(id)
-    );
-
-    CREATE TABLE IF NOT EXISTS respostas (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        inscricao_id INTEGER NOT NULL,
-        campo_id INTEGER NOT NULL,
-        valor TEXT,
-        FOREIGN KEY(inscricao_id) REFERENCES inscricoes(id),
-        FOREIGN KEY(campo_id) REFERENCES campos(id)
-    );
-    """)
-    # Migração leve para banco antigo sem a coluna atendimento_id
-    cols = [r[1] for r in conn.execute("PRAGMA table_info(inscricoes)").fetchall()]
-    if "atendimento_id" not in cols:
-        conn.execute("ALTER TABLE inscricoes ADD COLUMN atendimento_id INTEGER")
-    conn.commit()
+    conn.execute("SELECT 1")
     conn.close()
 
 @app.route("/")
