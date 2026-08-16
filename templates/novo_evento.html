@@ -1,0 +1,26 @@
+
+{% extends "base.html" %}
+{% block title %}Novo evento{% endblock %}
+{% block content %}
+<div class="form-card">
+  <h2>Criar novo evento</h2>
+  <p>Depois você poderá montar o formulário e cadastrar os atendimentos com suas vagas.</p>
+  <form method="post">
+    <label>Nome do evento</label>
+    <input name="nome" required placeholder="Ex.: Ação Social 2026">
+
+    <label>Data</label>
+    <input type="date" name="data">
+
+    <label>Local</label>
+    <input name="local" placeholder="Ex.: Chama Church">
+
+    <label class="check">
+      <input type="checkbox" name="permitir_cpf_repetido">
+      Permitir CPF repetido neste evento
+    </label>
+
+    <button class="btn destaque" type="submit">Criar e configurar</button>
+  </form>
+</div>
+{% endblock %}

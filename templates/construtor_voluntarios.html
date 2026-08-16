@@ -1,0 +1,83 @@
+
+{% extends "base.html" %}
+{% block title %}Configurar voluntários{% endblock %}
+{% block content %}
+<div class="topo-pagina">
+  <div>
+    <h2>Voluntários — {{ evento['nome'] }}</h2>
+    <p>Monte o formulário de cadastro dos voluntários.</p>
+  </div>
+  <div class="acoes">
+    <a class="btn voluntario" target="_blank" href="{{ url_for('cadastro_voluntario_publico', evento_id=evento['id']) }}">Visualizar formulário</a>
+    <a class="btn destaque" href="{{ url_for('ver_voluntarios', evento_id=evento['id']) }}">Ver voluntários</a>
+  </div>
+</div>
+
+<div class="duas-colunas">
+  <div class="form-card sem-margem">
+    <h3>Adicionar campo</h3>
+    <form method="post">
+      <label>Nome do campo / pergunta</label>
+      <input name="titulo" required placeholder="Ex.: Nome completo">
+
+      <label>Tipo de resposta</label>
+      <select name="tipo" id="tipo" onchange="mostrarOpcoes()">
+        <option value="texto">Texto curto</option>
+        <option value="numero">Número</option>
+        <option value="data">Data</option>
+        <option value="multipla">Múltipla escolha</option>
+        <option value="longo">Texto longo</option>
+      </select>
+
+      <div id="bloco-opcoes" style="display:none;">
+        <label>Opções</label>
+        <textarea name="opcoes" rows="5" placeholder="Uma opção por linha"></textarea>
+      </div>
+
+      <label class="check">
+        <input type="checkbox" name="obrigatorio">
+        Campo obrigatório
+      </label>
+
+      <label class="check">
+        <input type="checkbox" name="marcador_cpf">
+        Este campo é o CPF
+      </label>
+
+      <button class="btn destaque" type="submit">+ Adicionar campo</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3>Campos do formulário de voluntários</h3>
+    {% if campos %}
+      {% for campo in campos %}
+        <div class="campo-item">
+          <div>
+            <strong>{{ loop.index }}. {{ campo['titulo'] }}</strong>
+            <div class="meta">
+              {{ campo['tipo'] }}
+              {% if campo['obrigatorio'] %} • obrigatório{% endif %}
+              {% if campo['marcador_cpf'] %} • CPF{% endif %}
+            </div>
+          </div>
+          <div class="campo-acoes">
+            <form method="post" action="{{ url_for('subir_campo_voluntario', campo_id=campo['id']) }}"><button class="mini">↑</button></form>
+            <form method="post" action="{{ url_for('descer_campo_voluntario', campo_id=campo['id']) }}"><button class="mini">↓</button></form>
+            <form method="post" action="{{ url_for('excluir_campo_voluntario', campo_id=campo['id']) }}" onsubmit="return confirm('Excluir este campo?')"><button class="mini perigo">×</button></form>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p>Nenhum campo cadastrado.</p>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+function mostrarOpcoes(){
+  const tipo = document.getElementById('tipo').value;
+  document.getElementById('bloco-opcoes').style.display = tipo === 'multipla' ? 'block' : 'none';
+}
+</script>
+{% endblock %}

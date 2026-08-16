@@ -1,0 +1,176 @@
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #101510;
+  color: #eef3ee;
+}
+header {
+  padding: 18px 6%;
+  background: #0a0d0a;
+  border-bottom: 1px solid #273127;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+header h1 { margin: 0; font-size: 22px; }
+header p { margin: 3px 0 0; color: #9cab9c; }
+main { width: min(1180px, 92%); margin: 30px auto; }
+a { text-decoration: none; }
+.btn {
+  display: inline-block;
+  border: 0;
+  border-radius: 10px;
+  padding: 11px 16px;
+  background: #273127;
+  color: white;
+  cursor: pointer;
+}
+.btn.destaque { background: #476b49; }
+.btn.secundario { background: #414741; }
+.btn.pequeno { padding: 8px 11px; font-size: 13px; }
+.topo-pagina {
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 18px;
+}
+.card, .form-card, .sucesso, .vazio, .secao {
+  background: #171d17;
+  border: 1px solid #2b352b;
+  border-radius: 16px;
+  padding: 22px;
+}
+.secao { margin-bottom: 22px; }
+.status {
+  display: inline-block;
+  font-size: 12px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  margin-bottom: 8px;
+}
+.status.ativo { background: #27492c; }
+.status.inativo { background: #513333; }
+.acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+.acoes form { margin: 0; }
+.form-card { max-width: 700px; margin: 0 auto; }
+.sem-margem { margin: 0; max-width: none; }
+label {
+  display: block;
+  margin-top: 16px;
+  margin-bottom: 7px;
+  font-weight: bold;
+}
+input, select, textarea {
+  width: 100%;
+  border: 1px solid #3a453a;
+  background: #0d110d;
+  color: white;
+  padding: 12px;
+  border-radius: 10px;
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: normal;
+}
+.check input { width: auto; }
+.form-card button { margin-top: 20px; }
+.etiqueta {
+  color: #9cab9c;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+.alerta {
+  background: #483f1e;
+  border: 1px solid #75672e;
+  padding: 12px;
+  border-radius: 10px;
+  margin-bottom: 18px;
+}
+.duas-colunas {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+.campo-item, .atendimento-item {
+  border: 1px solid #2b352b;
+  border-radius: 12px;
+  padding: 14px;
+  margin-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+.meta {
+  color: #9cab9c;
+  font-size: 13px;
+  margin-top: 5px;
+}
+.campo-acoes {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.campo-acoes form { margin: 0; }
+.mini {
+  border: 0;
+  border-radius: 7px;
+  padding: 7px 10px;
+  background: #303a30;
+  color: white;
+  cursor: pointer;
+}
+.mini.perigo { background: #603232; }
+.tabela-wrap { overflow-x: auto; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #171d17;
+}
+th, td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid #2b352b;
+  white-space: nowrap;
+}
+th { background: #0d110d; position: sticky; top: 0; }
+.sucesso { text-align: center; max-width: 600px; margin: 0 auto; }
+.obrig { color: #e59b9b; }
+.resumo-vagas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.vaga-card {
+  background: #171d17;
+  border: 1px solid #2b352b;
+  border-radius: 12px;
+  padding: 15px;
+}
+.vaga-card div { margin-top: 5px; font-size: 13px; }
+.disponivel { color: #9fd29f; }
+.esgotado { color: #e59b9b; font-weight: bold; }
+@media (max-width: 800px) {
+  .duas-colunas { grid-template-columns: 1fr; }
+}
+@media (max-width: 650px) {
+  .topo-pagina { align-items: flex-start; flex-direction: column; }
+  header { padding: 14px 4%; }
+}
+
+.btn.excel { background: #217346; }
+
+.btn.voluntario { background: #6b4f2f; }

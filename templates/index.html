@@ -1,0 +1,50 @@
+
+{% extends "base.html" %}
+{% block title %}Eventos | Chama Social{% endblock %}
+{% block content %}
+<div class="topo-pagina">
+  <div>
+    <h2>Eventos</h2>
+    <p>Crie o evento, monte os campos, defina atendimentos e controle as vagas.</p>
+  </div>
+  <a class="btn destaque" href="{{ url_for('novo_evento') }}">+ Novo evento</a>
+</div>
+
+{% if eventos %}
+<div class="grid">
+{% for evento in eventos %}
+  <div class="card">
+    <div class="status {{ 'ativo' if evento['ativo'] else 'inativo' }}">
+      {{ 'Ativo' if evento['ativo'] else 'Inativo' }}
+    </div>
+    <h3>{{ evento['nome'] }}</h3>
+    <p><strong>Data:</strong> {{ evento['data'] or 'Não informada' }}</p>
+    <p><strong>Local:</strong> {{ evento['local'] or 'Não informado' }}</p>
+    <p><strong>Campos:</strong> {{ evento['total_campos'] }}</p>
+    <p><strong>Atendimentos:</strong> {{ evento['total_atendimentos'] }}</p>
+    <p><strong>Inscritos:</strong> {{ evento['total_inscricoes'] }}</p>
+    <p><strong>Voluntários:</strong> {{ evento['total_voluntarios'] }}</p>
+
+    <div class="acoes">
+      <a class="btn pequeno" href="{{ url_for('construtor', evento_id=evento['id']) }}">Configurar inscritos</a>
+      <a class="btn pequeno" target="_blank" href="{{ url_for('cadastro_publico', evento_id=evento['id']) }}">Abrir inscrição</a>
+      <a class="btn pequeno" href="{{ url_for('inscritos', evento_id=evento['id']) }}">Ver inscritos</a>
+      <a class="btn pequeno voluntario" href="{{ url_for('construtor_voluntarios', evento_id=evento['id']) }}">Configurar voluntários</a>
+      <a class="btn pequeno voluntario" target="_blank" href="{{ url_for('cadastro_voluntario_publico', evento_id=evento['id']) }}">Cadastro de voluntário</a>
+      <a class="btn pequeno voluntario" href="{{ url_for('ver_voluntarios', evento_id=evento['id']) }}">Ver voluntários</a>
+      <form method="post" action="{{ url_for('alternar_evento', evento_id=evento['id']) }}">
+        <button class="btn pequeno secundario" type="submit">
+          {{ 'Desativar' if evento['ativo'] else 'Ativar' }}
+        </button>
+      </form>
+    </div>
+  </div>
+{% endfor %}
+</div>
+{% else %}
+<div class="vazio">
+  <h3>Nenhum evento criado ainda.</h3>
+  <p>Clique em “Novo evento”.</p>
+</div>
+{% endif %}
+{% endblock %}

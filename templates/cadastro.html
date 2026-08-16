@@ -1,0 +1,53 @@
+
+{% extends "base.html" %}
+{% block title %}Inscrição | {{ evento['nome'] }}{% endblock %}
+{% block content %}
+<div class="form-card publico">
+  <p class="etiqueta">Formulário de inscrição</p>
+  <h2>{{ evento['nome'] }}</h2>
+  <p>{{ evento['local'] or '' }} {% if evento['data'] %}• {{ evento['data'] }}{% endif %}</p>
+
+  {% if atendimentos %}
+  <form method="post">
+    <label>Tipo de atendimento <span class="obrig">*</span></label>
+    <select name="atendimento_id" required>
+      <option value="">Selecione um atendimento</option>
+      {% for a in atendimentos %}
+        {% set restantes = a['vagas'] - a['ocupadas'] %}
+        <option value="{{ a['id'] }}" {% if restantes <= 0 %}disabled{% endif %}>
+          {{ a['nome'] }} — {% if restantes > 0 %}{{ restantes }} vaga(s) disponível(is){% else %}ESGOTADO{% endif %}
+        </option>
+      {% endfor %}
+    </select>
+
+    {% for campo in campos %}
+      <label>
+        {{ campo['titulo'] }}
+        {% if campo['obrigatorio'] %}<span class="obrig">*</span>{% endif %}
+      </label>
+
+      {% if campo['tipo'] == 'texto' %}
+        <input name="campo_{{ campo['id'] }}" {% if campo['obrigatorio'] %}required{% endif %}>
+      {% elif campo['tipo'] == 'numero' %}
+        <input type="number" name="campo_{{ campo['id'] }}" {% if campo['obrigatorio'] %}required{% endif %}>
+      {% elif campo['tipo'] == 'data' %}
+        <input type="date" name="campo_{{ campo['id'] }}" {% if campo['obrigatorio'] %}required{% endif %}>
+      {% elif campo['tipo'] == 'longo' %}
+        <textarea rows="4" name="campo_{{ campo['id'] }}" {% if campo['obrigatorio'] %}required{% endif %}></textarea>
+      {% elif campo['tipo'] == 'multipla' %}
+        <select name="campo_{{ campo['id'] }}" {% if campo['obrigatorio'] %}required{% endif %}>
+          <option value="">Selecione</option>
+          {% for opcao in campo['opcoes'].splitlines() if opcao.strip() %}
+            <option value="{{ opcao.strip() }}">{{ opcao.strip() }}</option>
+          {% endfor %}
+        </select>
+      {% endif %}
+    {% endfor %}
+
+    <button class="btn destaque" type="submit">Enviar inscrição</button>
+  </form>
+  {% else %}
+    <div class="alerta">Este evento ainda não possui atendimentos disponíveis.</div>
+  {% endif %}
+</div>
+{% endblock %}

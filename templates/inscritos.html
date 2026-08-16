@@ -1,0 +1,58 @@
+
+{% extends "base.html" %}
+{% block title %}Inscritos | {{ evento['nome'] }}{% endblock %}
+{% block content %}
+<div class="topo-pagina">
+  <div>
+    <h2>Inscritos — {{ evento['nome'] }}</h2>
+    <p>Total: {{ linhas|length }}</p>
+  </div>
+  <div class="acoes">
+    <a class="btn" href="{{ url_for('construtor', evento_id=evento['id']) }}">Configurar evento</a>
+    <a class="btn destaque" target="_blank" href="{{ url_for('cadastro_publico', evento_id=evento['id']) }}">Abrir inscrição</a>
+    <a class="btn excel" href="{{ url_for('exportar_excel', evento_id=evento['id']) }}">⬇ Baixar planilha Excel</a>
+  </div>
+</div>
+
+<div class="resumo-vagas">
+{% for a in atendimentos %}
+  {% set restantes = a['vagas'] - a['ocupadas'] %}
+  <div class="vaga-card">
+    <strong>{{ a['nome'] }}</strong>
+    <div>{{ a['ocupadas'] }}/{{ a['vagas'] }} preenchidas</div>
+    <div class="{{ 'esgotado' if restantes <= 0 else 'disponivel' }}">
+      {% if restantes <= 0 %}ESGOTADO{% else %}{{ restantes }} restantes{% endif %}
+    </div>
+  </div>
+{% endfor %}
+</div>
+
+<div class="tabela-wrap">
+<table>
+<thead>
+<tr>
+  <th>#</th>
+  <th>Atendimento</th>
+  {% for campo in campos %}
+    <th>{{ campo['titulo'] }}</th>
+  {% endfor %}
+  <th>Data/Hora</th>
+</tr>
+</thead>
+<tbody>
+{% for linha in linhas %}
+<tr>
+  <td>{{ linha['id'] }}</td>
+  <td>{{ linha['atendimento_nome'] or '' }}</td>
+  {% for campo in campos %}
+    <td>{{ linha['respostas'].get(campo['id'], '') }}</td>
+  {% endfor %}
+  <td>{{ linha['criado_em'] }}</td>
+</tr>
+{% else %}
+<tr><td colspan="{{ campos|length + 3 }}">Ainda não há inscritos.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endblock %}
