@@ -396,6 +396,61 @@ def novo_usuario():
                 raise
     return render_template('novo_usuario.html')
 
+@app.route('/usuarios/<int:uid>/editar', methods=['GET','POST'])
+@perfis('admin')
+def editar_usuario(uid):
+    conn=get_db()
+    u=conn.execute('SELECT * FROM usuarios WHERE id=?',(uid,)).fetchone()
+    if not u:
+        conn.close()
+        flash('Usuário não encontrado.','erro')
+        return redirect(url_for('usuarios'))
+    if request.method=='POST':
+        nome=request.form.get('nome','').strip()
+        login_nome=request.form.get('login','').strip()
+        perfil=request.form.get('perfil','').strip()
+        if not nome or not login_nome or perfil not in ('admin','operador','visualizador'):
+            conn.close()
+            flash('Preencha nome, login e perfil corretamente.','erro')
+            return render_template('editar_usuario.html', u=u)
+        try:
+            conn.execute('UPDATE usuarios SET nome=?, login=?, perfil=? WHERE id=?',(nome,login_nome,perfil,uid))
+            conn.commit(); conn.close(); conn=None
+            flash('Usuário atualizado com sucesso.','ok')
+            return redirect(url_for('usuarios'))
+        except Exception as exc:
+            if conn:
+                if hasattr(conn,'rollback'): conn.rollback()
+                conn.close()
+            if (using_postgres() and psycopg2 and isinstance(exc, psycopg2.IntegrityError)) or isinstance(exc, sqlite3.IntegrityError):
+                flash('Esse login já existe.','erro')
+                conn=get_db(); u=conn.execute('SELECT * FROM usuarios WHERE id=?',(uid,)).fetchone(); conn.close()
+                return render_template('editar_usuario.html', u=u)
+            raise
+    conn.close()
+    return render_template('editar_usuario.html', u=u)
+
+@app.route('/usuarios/<int:uid>/excluir', methods=['POST'])
+@perfis('admin')
+def excluir_usuario(uid):
+    if uid==session.get('usuario_id'):
+        flash('Você não pode excluir o próprio usuário que está logado.','erro')
+        return redirect(url_for('usuarios'))
+    conn=get_db()
+    u=conn.execute('SELECT * FROM usuarios WHERE id=?',(uid,)).fetchone()
+    if not u:
+        conn.close(); flash('Usuário não encontrado.','erro'); return redirect(url_for('usuarios'))
+    try:
+        conn.execute('DELETE FROM usuarios WHERE id=?',(uid,))
+        conn.commit(); conn.close(); conn=None
+        flash('Usuário excluído com sucesso.','ok')
+    except Exception:
+        if conn:
+            if hasattr(conn,'rollback'): conn.rollback()
+            conn.close()
+        flash('Este usuário possui registros vinculados e não pode ser excluído. Desative-o se necessário.','erro')
+    return redirect(url_for('usuarios'))
+
 @app.route('/usuarios/<int:uid>/resetar', methods=['POST'])
 @perfis('admin')
 def resetar_usuario(uid):
