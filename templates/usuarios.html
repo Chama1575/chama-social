@@ -1,1 +1,39 @@
-{% extends 'base.html' %}{% block content %}<div class="titlebar"><div><h1>Usuários e perfis</h1><p>Administrador, Operador e Visualizador.</p></div><a class="btn" href="{{url_for('novo_usuario')}}">+ Novo usuário</a></div><div class="card"><table><tr><th>Nome</th><th>Login</th><th>Perfil</th><th>Status</th><th>Primeiro acesso</th><th>Ações</th></tr>{% for u in usuarios %}<tr><td>{{u['nome']}}</td><td>{{u['login']}}</td><td>{{u['perfil']}}</td><td>{{'Ativo' if u['ativo'] else 'Desativado'}}</td><td>{{'Trocar senha' if u['trocar_senha'] else 'OK'}}</td><td><form class="inline" method="post" action="{{url_for('resetar_usuario',uid=u['id'])}}"><input name="nova_senha" type="password" placeholder="Nova senha" class="small" required><button>Redefinir senha</button></form>{% if u['id'] != usuario['id'] %}<form class="inline" method="post" action="{{url_for('alternar_usuario',uid=u['id'])}}"><button class="secondary">{{'Desativar' if u['ativo'] else 'Ativar'}}</button></form>{% endif %}</td></tr>{% endfor %}</table></div>{% endblock %}
+{% extends 'base.html' %}
+{% block content %}
+<div class="titlebar">
+  <div>
+    <h1>Usuários e perfis</h1>
+    <p>Administrador, Operador e Visualizador.</p>
+  </div>
+  <a class="btn" href="{{url_for('novo_usuario')}}">+ Novo usuário</a>
+</div>
+<div class="card">
+  <table>
+    <tr><th>Nome</th><th>Login</th><th>Perfil</th><th>Status</th><th>Primeiro acesso</th><th>Ações</th></tr>
+    {% for u in usuarios %}
+    <tr>
+      <td>{{u['nome']}}</td>
+      <td>{{u['login']}}</td>
+      <td>{{u['perfil']}}</td>
+      <td>{{'Ativo' if u['ativo'] else 'Desativado'}}</td>
+      <td>{{'Trocar senha' if u['trocar_senha'] else 'OK'}}</td>
+      <td>
+        <a class="btn" href="{{url_for('editar_usuario',uid=u['id'])}}">Editar</a>
+        <form class="inline" method="post" action="{{url_for('resetar_usuario',uid=u['id'])}}">
+          <input name="nova_senha" type="password" placeholder="Nova senha" class="small" required>
+          <button>Redefinir senha</button>
+        </form>
+        {% if u['id'] != usuario['id'] %}
+        <form class="inline" method="post" action="{{url_for('alternar_usuario',uid=u['id'])}}">
+          <button class="secondary">{{'Desativar' if u['ativo'] else 'Ativar'}}</button>
+        </form>
+        <form class="inline" method="post" action="{{url_for('excluir_usuario',uid=u['id'])}}" onsubmit="return confirm('Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.');">
+          <button class="danger">Excluir</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

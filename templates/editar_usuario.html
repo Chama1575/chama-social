@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card narrow">
+  <h1>Editar usuário</h1>
+  <form method="post">
+    <label>Nome
+      <input name="nome" value="{{u['nome']}}" required>
+    </label>
+    <label>Login
+      <input name="login" value="{{u['login']}}" required>
+    </label>
+    <label>Perfil
+      <select name="perfil">
+        <option value="operador" {% if u['perfil']=='operador' %}selected{% endif %}>Operador</option>
+        <option value="visualizador" {% if u['perfil']=='visualizador' %}selected{% endif %}>Visualizador</option>
+        <option value="admin" {% if u['perfil']=='admin' %}selected{% endif %}>Administrador</option>
+      </select>
+    </label>
+    <div class="actions">
+      <button>Salvar alterações</button>
+      <a class="btn secondary" href="{{url_for('usuarios')}}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
