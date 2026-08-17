@@ -1,1 +1,7 @@
-{% extends 'public_base.html' %}{% block content %}<div class="card"><h1>Cadastro de Voluntário</h1><h2>{{evento['nome']}}</h2><form method="post">{% for c in campos %}<label>{{c['titulo']}}{% if c['tipo']=='opcoes' %}<select name="campo_{{c['id']}}" {% if c['obrigatorio'] %}required{% endif %}><option value="">Selecione</option>{% for op in (c['opcoes'] or '').split(',') %}<option>{{op.strip()}}</option>{% endfor %}</select>{% else %}<input name="campo_{{c['id']}}" type="{{'number' if c['tipo']=='numero' else 'date' if c['tipo']=='data' else 'text'}}" {% if c['obrigatorio'] %}required{% endif %}>{% endif %}</label>{% endfor %}<button>Enviar cadastro</button></form></div>{% endblock %}
+{% extends 'public_base.html' %}{% block content %}<div class="card"><h1>Cadastro de Voluntário</h1><h2>{{evento['nome']}}</h2>
+<form method="post">
+<label>Função em que deseja servir
+<select name="funcao_id" required><option value="">Selecione</option>{% for f in funcoes %}{% if f['ocupadas'] < f['vagas'] %}<option value="{{f['id']}}">{{f['nome']}} — {{f['vagas']-f['ocupadas']}} vaga(s) disponível(is)</option>{% endif %}{% endfor %}</select>
+</label>
+{% for c in campos %}<label>{{c['titulo']}}{% if c['tipo']=='opcoes' %}<select name="campo_{{c['id']}}" {% if c['obrigatorio'] %}required{% endif %}><option value="">Selecione</option>{% for op in (c['opcoes'] or '').split(',') %}<option>{{op.strip()}}</option>{% endfor %}</select>{% else %}<input name="campo_{{c['id']}}" type="{{'number' if c['tipo']=='numero' else 'date' if c['tipo']=='data' else 'text'}}" {% if c['obrigatorio'] %}required{% endif %}>{% endif %}</label>{% endfor %}
+<button>Enviar cadastro</button></form></div>{% endblock %}

@@ -1,0 +1,1 @@
+{% extends 'base.html' %}{% block content %}<div class="card"><h1>{{titulo}}</h1><form method="post"><label>Nome<input name="nome" value="{{item['nome']}}" required></label><label>Vagas<input type="number" min="0" name="vagas" value="{{item['vagas']}}" required></label><button>Salvar alterações</button></form></div>{% endblock %}
